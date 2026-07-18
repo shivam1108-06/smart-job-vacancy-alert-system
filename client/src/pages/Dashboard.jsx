@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getJobs, deleteJob } from "../services/job.service";
+import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
+import { getJobs, deleteJob } from "../services/job.service";
 
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("latest");
   const [locationFilter, setLocationFilter] = useState("All");
@@ -15,10 +18,17 @@ function Dashboard() {
 
   const fetchJobs = async () => {
     try {
+      setLoading(true);
+
       const response = await getJobs();
+
       setJobs(response.data.jobs);
     } catch (error) {
       console.log(error);
+
+      toast.error("Failed to load jobs");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,13 +42,13 @@ function Dashboard() {
     try {
       await deleteJob(id);
 
-      alert("Job Deleted Successfully!");
+      toast.success("Job Deleted Successfully!");
 
       fetchJobs();
     } catch (error) {
       console.log(error);
 
-      alert(
+      toast.error(
         error.response?.data?.message || "Delete Failed"
       );
     }
@@ -47,8 +57,12 @@ function Dashboard() {
   const filteredJobs = jobs
     .filter((job) => {
       const matchesSearch =
-        job.title.toLowerCase().includes(search.toLowerCase()) ||
-        job.company.toLowerCase().includes(search.toLowerCase());
+        job.title
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        job.company
+          .toLowerCase()
+          .includes(search.toLowerCase());
 
       const matchesLocation =
         locationFilter === "All" ||
@@ -65,12 +79,32 @@ function Dashboard() {
           return Number(a.salary) - Number(b.salary);
 
         case "oldest":
-          return new Date(a.createdAt) - new Date(b.createdAt);
+          return (
+            new Date(a.createdAt) -
+            new Date(b.createdAt)
+          );
 
         default:
-          return new Date(b.createdAt) - new Date(a.createdAt);
+          return (
+            new Date(b.createdAt) -
+            new Date(a.createdAt)
+          );
       }
     });
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+
+        <div className="flex justify-center items-center h-screen">
+          <h1 className="text-3xl font-bold">
+            Loading...
+          </h1>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -78,7 +112,6 @@ function Dashboard() {
 
       <div className="min-h-screen bg-slate-100 p-8">
                 {/* Statistics */}
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
 
           <div className="bg-blue-600 text-white rounded-lg p-6 shadow">
@@ -103,7 +136,6 @@ function Dashboard() {
         </div>
 
         {/* Search */}
-
         <div className="mb-5">
           <input
             type="text"
@@ -115,7 +147,6 @@ function Dashboard() {
         </div>
 
         {/* Sort & Filter */}
-
         <div className="flex flex-col md:flex-row gap-4 mb-6">
 
           <select
@@ -148,11 +179,23 @@ function Dashboard() {
         </div>
 
         {/* Jobs */}
-
         {filteredJobs.length === 0 ? (
-          <h2 className="text-center text-2xl font-bold mt-20">
-            No Jobs Found
-          </h2>
+          <div className="text-center mt-20">
+            <h2 className="text-3xl font-bold">
+              📭 No Jobs Found
+            </h2>
+
+            <p className="text-gray-500 mt-3">
+              Click "Add Job" to create your first job.
+            </p>
+
+            <Link
+              to="/add-job"
+              className="inline-block mt-6 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+            >
+              + Add Job
+            </Link>
+          </div>
         ) : (
           filteredJobs.map((job) => (
             <div
@@ -179,7 +222,7 @@ function Dashboard() {
                 {job.description}
               </p>
 
-              <div className="flex gap-3 mt-5 flex-wrap">
+              <div className="flex flex-wrap gap-3 mt-5">
 
                 <Link
                   to={`/edit-job/${job.id}`}

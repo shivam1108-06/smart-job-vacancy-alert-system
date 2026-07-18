@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../services/auth.service";
+import toast from "react-hot-toast";
 
 function Login() {
   const navigate = useNavigate();
@@ -23,16 +24,17 @@ function Login() {
       // Save JWT Token
       localStorage.setItem("token", response.data.token);
 
-      alert("Login Successful!");
+      toast.success("Login Successful!");
 
       navigate("/dashboard");
 
     } catch (error) {
       console.error(error);
 
-      alert(
+      toast.error(
         error.response?.data?.message || "Login Failed"
-      );
+    );
+    
     } finally {
       setLoading(false);
     }
