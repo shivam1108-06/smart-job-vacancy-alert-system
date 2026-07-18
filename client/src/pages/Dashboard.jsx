@@ -35,10 +35,13 @@ function Dashboard() {
     } catch (error) {
       console.log(error);
 
-      alert(
-        error.response?.data?.message || "Delete Failed"
-      );
+      alert(error.response?.data?.message || "Delete Failed");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
   };
 
   const filteredJobs = jobs.filter((job) => {
@@ -56,15 +59,24 @@ function Dashboard() {
           Dashboard
         </h1>
 
-        <Link
-          to="/add-job"
-          className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
-        >
-          + Add Job
-        </Link>
-      </div>
+        <div className="flex gap-3">
 
-      {/* Search Box */}
+          <Link
+            to="/add-job"
+            className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
+          >
+            + Add Job
+          </Link>
+
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+
+        </div>
+      </div>
 
       <div className="mb-6">
         <input
