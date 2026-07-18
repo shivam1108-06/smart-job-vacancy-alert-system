@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getJobs } from "../services/job.service";
+import { Link } from "react-router-dom";
+import { getJobs, deleteJob } from "../services/job.service";
 
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
@@ -17,39 +18,100 @@ function Dashboard() {
     }
   };
 
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this job?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteJob(id);
+
+      alert("Job Deleted Successfully!");
+
+      fetchJobs();
+    } catch (error) {
+      console.log(error);
+
+      alert(
+        error.response?.data?.message || "Delete Failed"
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-10">
 
-      <h1 className="text-4xl font-bold mb-8">
-        Dashboard
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">
+          Dashboard
+        </h1>
+
+        <Link
+          to="/add-job"
+          className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
+        >
+          + Add Job
+        </Link>
+      </div>
 
       {jobs.length === 0 ? (
-        <h2>No Jobs Found</h2>
+        <h2 className="text-center text-xl font-semibold">
+          No Jobs Found
+        </h2>
       ) : (
         jobs.map((job) => (
           <div
             key={job.id}
-            className="bg-white shadow rounded p-5 mb-5"
+            className="bg-white shadow-lg rounded-lg p-6 mb-6"
           >
             <h2 className="text-2xl font-bold">
               {job.title}
             </h2>
 
-            <p>{job.company}</p>
+            <p className="mt-2">
+              <strong>Company:</strong> {job.company}
+            </p>
 
-            <p>{job.location}</p>
+            <p>
+              <strong>Location:</strong> {job.location}
+            </p>
 
-            <p>₹ {job.salary}</p>
+            <p>
+              <strong>Salary:</strong> ₹ {job.salary}
+            </p>
 
-            <a
-              href={job.applyLink}
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue-600"
-            >
-              Apply
-            </a>
+            <p className="mt-2">
+              {job.description}
+            </p>
+
+            <div className="flex gap-3 mt-5">
+
+              <Link
+                to={`/edit-job/${job.id}`}
+                className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+              >
+                Edit
+              </Link>
+
+              <button
+                onClick={() => handleDelete(job.id)}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+
+              <a
+                href={job.applyLink}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Apply
+              </a>
+
+            </div>
           </div>
         ))
       )}
