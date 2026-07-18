@@ -9,3 +9,11 @@ export const getJobs = () => {
     },
   });
 };
+
+export const createJob = (jobData) => {
+  return axios.post(API, jobData, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+};
