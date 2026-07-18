@@ -13,4 +13,20 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+
+  jobs Job[]
+}
+
+model Job {
+  id          Int      @id @default(autoincrement())
+  title       String
+  company     String
+  location    String
+  salary      String?
+  description String
+  applyLink   String
+  createdAt   DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
