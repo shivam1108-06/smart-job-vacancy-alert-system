@@ -4,6 +4,7 @@ import { getJobs, deleteJob } from "../services/job.service";
 
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -40,6 +41,13 @@ function Dashboard() {
     }
   };
 
+  const filteredJobs = jobs.filter((job) => {
+    return (
+      job.title.toLowerCase().includes(search.toLowerCase()) ||
+      job.company.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
   return (
     <div className="min-h-screen bg-slate-100 p-10">
 
@@ -56,12 +64,24 @@ function Dashboard() {
         </Link>
       </div>
 
-      {jobs.length === 0 ? (
+      {/* Search Box */}
+
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search by Job Title or Company..."
+          className="w-full border p-3 rounded-lg shadow-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {filteredJobs.length === 0 ? (
         <h2 className="text-center text-xl font-semibold">
           No Jobs Found
         </h2>
       ) : (
-        jobs.map((job) => (
+        filteredJobs.map((job) => (
           <div
             key={job.id}
             className="bg-white shadow-lg rounded-lg p-6 mb-6"
