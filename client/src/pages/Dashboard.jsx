@@ -12,6 +12,10 @@ function Dashboard() {
   const [sortBy, setSortBy] = useState("latest");
   const [locationFilter, setLocationFilter] = useState("All");
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 5;
+
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -25,7 +29,6 @@ function Dashboard() {
       setJobs(response.data.jobs);
     } catch (error) {
       console.log(error);
-
       toast.error("Failed to load jobs");
     } finally {
       setLoading(false);
@@ -92,6 +95,19 @@ function Dashboard() {
       }
     });
 
+  // Pagination Logic
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+
+  const currentJobs = filteredJobs.slice(
+    indexOfFirstJob,
+    indexOfLastJob
+  );
+
+  const totalPages = Math.ceil(
+    filteredJobs.length / jobsPerPage
+  );
+
   if (loading) {
     return (
       <>
@@ -142,9 +158,17 @@ function Dashboard() {
             placeholder="Search by Job Title or Company..."
             className="w-full border rounded-lg p-3"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
+
+        {/* Job Counter */}
+        <p className="text-gray-600 mb-5">
+          Showing {currentJobs.length} of {filteredJobs.length} Jobs
+        </p>
 
         {/* Sort & Filter */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -152,7 +176,10 @@ function Dashboard() {
           <select
             className="border rounded-lg p-3"
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="latest">Latest</option>
             <option value="oldest">Oldest</option>
@@ -163,7 +190,10 @@ function Dashboard() {
           <select
             className="border rounded-lg p-3"
             value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
+            onChange={(e) => {
+              setLocationFilter(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="All">All Locations</option>
 
@@ -197,59 +227,94 @@ function Dashboard() {
             </Link>
           </div>
         ) : (
-          filteredJobs.map((job) => (
-            <div
-              key={job.id}
-              className="bg-white rounded-lg shadow-lg p-6 mb-6"
-            >
-              <h2 className="text-2xl font-bold">
-                {job.title}
-              </h2>
+          <>
+            {currentJobs.map((job) => (
+              <div
+                key={job.id}
+                className="bg-white rounded-lg shadow-lg p-6 mb-6"
+              >
+                <h2 className="text-2xl font-bold">
+                  {job.title}
+                </h2>
 
-              <p className="mt-2">
-                <strong>Company:</strong> {job.company}
-              </p>
+                <p className="mt-2">
+                  <strong>Company:</strong> {job.company}
+                </p>
 
-              <p>
-                <strong>Location:</strong> {job.location}
-              </p>
+                <p>
+                  <strong>Location:</strong> {job.location}
+                </p>
 
-              <p>
-                <strong>Salary:</strong> ₹ {job.salary}
-              </p>
+                <p>
+                  <strong>Salary:</strong> ₹ {job.salary}
+                </p>
 
-              <p className="mt-2">
-                {job.description}
-              </p>
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(job.createdAt).toLocaleDateString()}
+                </p>
 
-              <div className="flex flex-wrap gap-3 mt-5">
+                <p className="mt-2">
+                  {job.description}
+                </p>
 
-                <Link
-                  to={`/edit-job/${job.id}`}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                >
-                  Edit
-                </Link>
+                <div className="flex flex-wrap gap-3 mt-5">
 
-                <button
-                  onClick={() => handleDelete(job.id)}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                  Delete
-                </button>
+                  <Link
+                    to={`/edit-job/${job.id}`}
+                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                  >
+                    Edit
+                  </Link>
 
-                <a
-                  href={job.applyLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Apply
-                </a>
+                  <button
+                    onClick={() => handleDelete(job.id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
 
+                  <a
+                    href={job.applyLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Apply
+                  </a>
+
+                </div>
               </div>
+            ))}
+
+            {/* Pagination */}
+            <div className="flex justify-center gap-3 mt-8">
+
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <span className="px-4 py-2 font-bold">
+                Page {currentPage} of {totalPages || 1}
+              </span>
+
+              <button
+                disabled={
+                  currentPage === totalPages ||
+                  totalPages === 0
+                }
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+
             </div>
-          ))
+          </>
         )}
 
       </div>
