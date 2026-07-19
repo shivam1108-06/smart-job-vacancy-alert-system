@@ -138,6 +138,17 @@ function Dashboard() {
     filteredJobs.length / jobsPerPage
   );
 
+  // Analytics
+  const totalSalary = jobs.reduce(
+    (sum, job) => sum + Number(job.salary),
+    0
+  );
+
+  const averageSalary =
+    jobs.length > 0
+      ? Math.round(totalSalary / jobs.length)
+      : 0;
+
   if (loading) {
     return (
       <>
@@ -181,13 +192,41 @@ function Dashboard() {
 
           <div className="bg-pink-600 text-white rounded-lg p-6 shadow">
             <h2 className="text-xl font-bold">Favorites</h2>
-            <p className="text-4xl mt-2">{favorites.length}</p>
+            <p className="text-4xl mt-2">
+              {favorites.length}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Salary Analytics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+
+          <div className="bg-indigo-600 text-white rounded-lg p-6 shadow">
+            <h2 className="text-xl font-bold">
+              Total Salary
+            </h2>
+
+            <p className="text-3xl mt-2">
+              ₹ {totalSalary.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-orange-600 text-white rounded-lg p-6 shadow">
+            <h2 className="text-xl font-bold">
+              Average Salary
+            </h2>
+
+            <p className="text-3xl mt-2">
+              ₹ {averageSalary.toLocaleString()}
+            </p>
           </div>
 
         </div>
 
         {/* Search */}
         <div className="mb-5">
+
           <input
             type="text"
             placeholder="Search by Job Title or Company..."
@@ -198,6 +237,7 @@ function Dashboard() {
               setCurrentPage(1);
             }}
           />
+
         </div>
 
         {/* Job Counter */}
@@ -206,7 +246,7 @@ function Dashboard() {
         </p>
 
         {/* Sort & Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
 
           <select
             className="border rounded-lg p-3"
@@ -234,16 +274,24 @@ function Dashboard() {
 
             {[...new Set(jobs.map((job) => job.location))].map(
               (location) => (
-                <option key={location} value={location}>
+                <option
+                  key={location}
+                  value={location}
+                >
                   {location}
                 </option>
               )
             )}
+
           </select>
 
         </div>
 
-        {/* Jobs */}
+        {/* Recent Jobs */}
+        <h2 className="text-2xl font-bold mb-5">
+          Recent Jobs
+        </h2>
+                {/* Jobs */}
         {filteredJobs.length === 0 ? (
           <div className="text-center mt-20">
             <h2 className="text-3xl font-bold">
@@ -266,40 +314,21 @@ function Dashboard() {
             {currentJobs.map((job) => (
               <div
                 key={job.id}
-                className="bg-white rounded-lg shadow-lg p-6 mb-6"
+                className="bg-white rounded-lg shadow-lg p-6 mb-6 hover:shadow-xl transition"
               >
-                <h2 className="text-2xl font-bold">
-                  {job.title}
-                </h2>
+                <div className="flex justify-between items-start">
 
-                {favorites.includes(job.id) && (
-                  <span className="inline-block mt-2 bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm">
-                    ⭐ Favorite Job
-                  </span>
-                )}
+                  <div>
+                    <h2 className="text-2xl font-bold">
+                      {job.title}
+                    </h2>
 
-                <p className="mt-2">
-                  <strong>Company:</strong> {job.company}
-                </p>
-
-                <p>
-                  <strong>Location:</strong> {job.location}
-                </p>
-
-                <p>
-                  <strong>Salary:</strong> ₹ {job.salary}
-                </p>
-
-                <p>
-                  <strong>Created:</strong>{" "}
-                  {new Date(job.createdAt).toLocaleDateString()}
-                </p>
-
-                <p className="mt-2">
-                  {job.description}
-                </p>
-
-                <div className="flex flex-wrap gap-3 mt-5">
+                    {favorites.includes(job.id) && (
+                      <span className="inline-block mt-2 bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm">
+                        ⭐ Favorite Job
+                      </span>
+                    )}
+                  </div>
 
                   <button
                     onClick={() => toggleFavorite(job.id)}
@@ -313,6 +342,36 @@ function Dashboard() {
                       ? "❤️ Saved"
                       : "🤍 Save"}
                   </button>
+
+                </div>
+
+                <p className="mt-4">
+                  <strong>Company:</strong> {job.company}
+
+                  <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                    Company
+                  </span>
+                </p>
+
+                <p>
+                  <strong>Location:</strong> {job.location}
+                </p>
+
+                <p>
+                  <strong>Salary:</strong> ₹{" "}
+                  {Number(job.salary).toLocaleString()}
+                </p>
+
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(job.createdAt).toLocaleDateString()}
+                </p>
+
+                <p className="mt-3 text-gray-700">
+                  {job.description}
+                </p>
+
+                <div className="flex flex-wrap gap-3 mt-6">
 
                   <Link
                     to={`/edit-job/${job.id}`}
@@ -338,21 +397,24 @@ function Dashboard() {
                   </a>
 
                 </div>
+
               </div>
             ))}
 
             {/* Pagination */}
-            <div className="flex justify-center gap-3 mt-8">
+            <div className="flex justify-center items-center gap-3 mt-8">
 
               <button
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
+                onClick={() =>
+                  setCurrentPage(currentPage - 1)
+                }
                 className="bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
               >
                 Previous
               </button>
 
-              <span className="px-4 py-2 font-bold">
+              <span className="font-semibold">
                 Page {currentPage} of {totalPages || 1}
               </span>
 
@@ -361,13 +423,16 @@ function Dashboard() {
                   currentPage === totalPages ||
                   totalPages === 0
                 }
-                onClick={() => setCurrentPage(currentPage + 1)}
+                onClick={() =>
+                  setCurrentPage(currentPage + 1)
+                }
                 className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
               >
                 Next
               </button>
 
             </div>
+
           </>
         )}
 
