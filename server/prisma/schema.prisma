@@ -12,6 +12,8 @@ model User {
   fullName  String
   email     String   @unique
   password  String
+  mobile    String?
+  bio       String?
   createdAt DateTime @default(now())
 
   jobs Job[]

@@ -136,16 +136,30 @@ const register = async (req, res) => {
   }
 };
 
+const USER_SELECT_FIELDS = {
+  id: true,
+  fullName: true,
+  email: true,
+  mobile: true,
+  bio: true,
+  createdAt: true
+};
+
+const sanitizeUser = (user) => ({
+  id: user.id,
+  name: user.fullName,
+  email: user.email,
+  role: "User",
+  mobile: user.mobile,
+  bio: user.bio,
+  joinedDate: user.createdAt
+});
+
 const getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        createdAt: true
-      }
+      select: USER_SELECT_FIELDS
     });
 
     if (!user) {
@@ -157,13 +171,7 @@ const getMe = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      user: {
-        id: user.id,
-        name: user.fullName,
-        email: user.email,
-        role: "User",
-        joinedDate: user.createdAt
-      }
+      user: sanitizeUser(user)
     });
 
   } catch (error) {
@@ -176,8 +184,82 @@ const getMe = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { fullName, email, mobile, bio } = req.body;
+
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Full name is required."
+      });
+    }
+
+    if (email && !validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address."
+      });
+    }
+
+    if (mobile && !validator.isMobilePhone(mobile, "any")) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid mobile number."
+      });
+    }
+
+    if (bio && bio.length > 300) {
+      return res.status(400).json({
+        success: false,
+        message: "Bio must be 300 characters or fewer."
+      });
+    }
+
+    if (email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(409).json({
+          success: false,
+          message: "Email already in use."
+        });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: fullName.trim(),
+        ...(email && { email }),
+        mobile: mobile ? mobile.trim() : null,
+        bio: bio ? bio.trim() : null
+      },
+      select: USER_SELECT_FIELDS
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: sanitizeUser(updatedUser)
+    });
+
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getMe
+  getMe,
+  updateProfile
 };
