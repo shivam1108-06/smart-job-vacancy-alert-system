@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { getJobs, deleteJob } from "../services/job.service";
+import JobBarChart from "../components/JobBarChart";
+import JobPieChart from "../components/JobPieChart";
 
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
@@ -223,6 +225,16 @@ function Dashboard() {
           </div>
 
         </div>
+
+        {/* Charts */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+
+        <JobBarChart jobs={jobs} />
+
+        <JobPieChart jobs={jobs} />
+
+      </div>
 
         {/* Search */}
         <div className="mb-5">
