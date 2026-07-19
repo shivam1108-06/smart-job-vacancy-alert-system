@@ -4,16 +4,26 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AddJob from "./pages/AddJob";
 import EditJob from "./pages/EditJob";
+import Profile from "./pages/Profile";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Redirect to Login */}
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
+      />
 
-      <Route path="/login" element={<Login />} />
+      {/* Public Route */}
+      <Route
+        path="/login"
+        element={<Login />}
+      />
 
+      {/* Protected Dashboard */}
       <Route
         path="/dashboard"
         element={
@@ -23,6 +33,7 @@ function App() {
         }
       />
 
+      {/* Protected Add Job */}
       <Route
         path="/add-job"
         element={
@@ -32,11 +43,22 @@ function App() {
         }
       />
 
+      {/* Protected Edit Job */}
       <Route
         path="/edit-job/:id"
         element={
           <ProtectedRoute>
             <EditJob />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected Profile */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />
