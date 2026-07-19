@@ -12,6 +12,12 @@ function Dashboard() {
   const [sortBy, setSortBy] = useState("latest");
   const [locationFilter, setLocationFilter] = useState("All");
 
+  // Favorites
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem("favorites");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
@@ -29,6 +35,7 @@ function Dashboard() {
       setJobs(response.data.jobs);
     } catch (error) {
       console.log(error);
+
       toast.error("Failed to load jobs");
     } finally {
       setLoading(false);
@@ -55,6 +62,29 @@ function Dashboard() {
         error.response?.data?.message || "Delete Failed"
       );
     }
+  };
+
+  const toggleFavorite = (jobId) => {
+    let updatedFavorites;
+
+    if (favorites.includes(jobId)) {
+      updatedFavorites = favorites.filter(
+        (id) => id !== jobId
+      );
+
+      toast.success("Removed from Favorites");
+    } else {
+      updatedFavorites = [...favorites, jobId];
+
+      toast.success("Added to Favorites");
+    }
+
+    setFavorites(updatedFavorites);
+
+    localStorage.setItem(
+      "favorites",
+      JSON.stringify(updatedFavorites)
+    );
   };
 
   const filteredJobs = jobs
@@ -95,7 +125,7 @@ function Dashboard() {
       }
     });
 
-  // Pagination Logic
+  // Pagination
   const indexOfLastJob = currentPage * jobsPerPage;
   const indexOfFirstJob = indexOfLastJob - jobsPerPage;
 
@@ -128,7 +158,7 @@ function Dashboard() {
 
       <div className="min-h-screen bg-slate-100 p-8">
                 {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
 
           <div className="bg-blue-600 text-white rounded-lg p-6 shadow">
             <h2 className="text-xl font-bold">Total Jobs</h2>
@@ -147,6 +177,11 @@ function Dashboard() {
             <p className="text-4xl mt-2">
               {new Set(jobs.map((job) => job.location)).size}
             </p>
+          </div>
+
+          <div className="bg-pink-600 text-white rounded-lg p-6 shadow">
+            <h2 className="text-xl font-bold">Favorites</h2>
+            <p className="text-4xl mt-2">{favorites.length}</p>
           </div>
 
         </div>
@@ -237,6 +272,12 @@ function Dashboard() {
                   {job.title}
                 </h2>
 
+                {favorites.includes(job.id) && (
+                  <span className="inline-block mt-2 bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm">
+                    ⭐ Favorite Job
+                  </span>
+                )}
+
                 <p className="mt-2">
                   <strong>Company:</strong> {job.company}
                 </p>
@@ -259,6 +300,19 @@ function Dashboard() {
                 </p>
 
                 <div className="flex flex-wrap gap-3 mt-5">
+
+                  <button
+                    onClick={() => toggleFavorite(job.id)}
+                    className={`px-4 py-2 rounded text-white ${
+                      favorites.includes(job.id)
+                        ? "bg-pink-600"
+                        : "bg-gray-500"
+                    }`}
+                  >
+                    {favorites.includes(job.id)
+                      ? "❤️ Saved"
+                      : "🤍 Save"}
+                  </button>
 
                   <Link
                     to={`/edit-job/${job.id}`}
