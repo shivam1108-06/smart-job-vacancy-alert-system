@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AddJob from "./pages/AddJob";
 import EditJob from "./pages/EditJob";
@@ -21,6 +22,12 @@ function App() {
       <Route
         path="/login"
         element={<Login />}
+      />
+
+      {/* Public Route */}
+      <Route
+        path="/register"
+        element={<Register />}
       />
 
       {/* Protected Dashboard */}

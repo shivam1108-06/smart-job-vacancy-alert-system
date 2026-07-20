@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { logoutUser } from "../services/auth.service";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ function Navbar() {
 
     if (!confirmLogout) return;
 
-    localStorage.removeItem("token");
+    logoutUser();
     navigate("/login");
   };
 

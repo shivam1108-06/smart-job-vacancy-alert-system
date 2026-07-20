@@ -7,6 +7,7 @@ import FormField from "../components/FormField";
 import AvatarUploader from "../components/AvatarUploader";
 import ChangePasswordForm from "../components/ChangePasswordForm";
 import { getProfile, updateProfile } from "../services/user.service";
+import { logoutUser } from "../services/auth.service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MOBILE_REGEX = /^[0-9+\-\s()]{7,15}$/;
@@ -140,7 +141,7 @@ function Profile() {
 
     if (!confirmLogout) return;
 
-    localStorage.removeItem("token");
+    logoutUser();
 
     navigate("/login");
   };

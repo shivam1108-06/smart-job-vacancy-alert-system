@@ -5,6 +5,21 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 
+const formatRole = (role) => (role === "ADMIN" ? "Admin" : "User");
+
+const generateToken = (user) =>
+  jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d"
+    }
+  );
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -40,16 +55,7 @@ const login = async (req, res) => {
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d"
-      }
-    );
+    const token = generateToken(user);
 
     return res.status(200).json({
       success: true,
@@ -58,7 +64,8 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         fullName: user.fullName,
-        email: user.email
+        email: user.email,
+        role: formatRole(user.role)
       }
     });
 
@@ -97,6 +104,15 @@ const register = async (req, res) => {
       });
     }
 
+    const passwordError = getPasswordStrengthError(password);
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError
+      });
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -118,13 +134,17 @@ const register = async (req, res) => {
       }
     });
 
+    const token = generateToken(user);
+
     return res.status(201).json({
       success: true,
       message: "Registration successful.",
+      token,
       user: {
         id: user.id,
         fullName: user.fullName,
-        email: user.email
+        email: user.email,
+        role: formatRole(user.role)
       }
     });
 
@@ -142,6 +162,7 @@ const USER_SELECT_FIELDS = {
   id: true,
   fullName: true,
   email: true,
+  role: true,
   mobile: true,
   bio: true,
   avatarUrl: true,
@@ -152,7 +173,7 @@ const sanitizeUser = (user, req) => ({
   id: user.id,
   name: user.fullName,
   email: user.email,
-  role: "User",
+  role: formatRole(user.role),
   mobile: user.mobile,
   bio: user.bio,
   avatarUrl: user.avatarUrl

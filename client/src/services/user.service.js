@@ -23,14 +23,14 @@ export const uploadAvatar = (file) => {
   const formData = new FormData();
   formData.append("avatar", file);
 
-  // Override the instance's default "application/json" Content-Type — with
-  // it in place, axios JSON-stringifies the FormData instead of sending a
-  // real multipart body, so Multer never sees a file. Setting it away from
-  // "application/json" here lets axios leave the FormData untouched, which
-  // in turn lets the browser attach the correct multipart boundary.
+  // Clear the instance's default "application/json" Content-Type by setting
+  // it to undefined (axios drops undefined headers entirely) rather than to
+  // a literal "multipart/form-data" string, which has no boundary parameter
+  // and breaks Multer's parsing. With no Content-Type header set, the browser
+  // computes the correct "multipart/form-data; boundary=..." value itself.
   return api.put(
     "/auth/upload-avatar",
     formData,
-    authHeader({ "Content-Type": "multipart/form-data" })
+    authHeader({ "Content-Type": undefined })
   );
 };
