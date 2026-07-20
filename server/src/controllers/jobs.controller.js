@@ -1,4 +1,10 @@
 const prisma = require("../config/prisma");
+const { fetchExternalJobs } = require("../services/jobApi.service");
+
+// title + company + location, normalized, is the duplicate-detection key
+// used by both the existing-jobs lookup and the freshly fetched API jobs.
+const buildJobKey = (title, company, location) =>
+  `${title}|${company}|${location}`.trim().toLowerCase();
 
 const createJob = async (req, res) => {
   try {
@@ -48,19 +54,24 @@ const createJob = async (req, res) => {
 
 const getAllJobs = async (req, res) => {
   try {
-    const jobs = await prisma.job.findMany({
-      where: {
-        userId: req.user.userId
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
+    const userId = req.user.userId;
+
+    const [jobs, user] = await Promise.all([
+      prisma.job.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { lastSyncedAt: true }
+      })
+    ]);
 
     return res.status(200).json({
       success: true,
       count: jobs.length,
-      jobs
+      jobs,
+      lastSyncedAt: user?.lastSyncedAt || null
     });
 
   } catch (error) {
@@ -202,10 +213,77 @@ const deleteJob = async (req, res) => {
   }
 };
 
+const syncJobs = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const fetchedJobs = await fetchExternalJobs();
+
+    const existingJobs = await prisma.job.findMany({
+      where: { userId },
+      select: { title: true, company: true, location: true }
+    });
+
+    const existingKeys = new Set(
+      existingJobs.map((job) =>
+        buildJobKey(job.title, job.company, job.location)
+      )
+    );
+
+    let added = 0;
+    let duplicates = 0;
+
+    for (const job of fetchedJobs) {
+      const key = buildJobKey(job.title, job.company, job.location);
+
+      if (existingKeys.has(key)) {
+        duplicates += 1;
+        continue;
+      }
+
+      await prisma.job.create({
+        data: {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          salary: job.salary,
+          description: job.description,
+          applyLink: job.applyLink,
+          source: job.source,
+          userId
+        }
+      });
+
+      existingKeys.add(key);
+      added += 1;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastSyncedAt: new Date() }
+    });
+
+    return res.status(200).json({
+      success: true,
+      added,
+      duplicates
+    });
+
+  } catch (error) {
+    console.error("Sync Jobs Error:", error);
+
+    return res.status(502).json({
+      success: false,
+      message: error.message || "Failed to sync jobs from the job API."
+    });
+  }
+};
+
 module.exports = {
   createJob,
   getAllJobs,
   getJobById,
   updateJob,
-  deleteJob
+  deleteJob,
+  syncJobs
 };

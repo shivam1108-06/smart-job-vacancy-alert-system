@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
-import { getJobs, deleteJob } from "../services/job.service";
+import Spinner from "../components/Spinner";
+import { getJobs, deleteJob, syncJobs } from "../services/job.service";
 import JobBarChart from "../components/JobBarChart";
 import JobPieChart from "../components/JobPieChart";
 import {
@@ -16,6 +17,9 @@ import {
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
 
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("latest");
@@ -42,12 +46,37 @@ function Dashboard() {
       const response = await getJobs();
 
       setJobs(response.data.jobs);
+      setLastSyncedAt(response.data.lastSyncedAt);
     } catch (error) {
       console.log(error);
 
       toast.error("Failed to load jobs");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+
+      const response = await syncJobs();
+
+      if (response.data.added > 0) {
+        toast.success("Jobs Synced Successfully");
+      } else {
+        toast.success("No New Jobs Found");
+      }
+
+      await fetchJobs();
+    } catch (error) {
+      console.log(error);
+
+      toast.error(
+        error.response?.data?.message || "API Error"
+      );
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -187,14 +216,32 @@ function Dashboard() {
             <p className="text-gray-500 mt-1">
               Manage your latest job opportunities
             </p>
+
+            <p className="text-sm text-gray-400 mt-1">
+              Last Sync:{" "}
+              {lastSyncedAt
+                ? new Date(lastSyncedAt).toLocaleString()
+                : "Never"}
+            </p>
           </div>
 
-          <Link
-            to="/add-job"
-            className="w-full md:w-auto text-center bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-6 py-3 rounded-lg font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            + Add Job
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-6 py-3 rounded-lg font-semibold shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
+            >
+              {syncing && <Spinner />}
+              {syncing ? "Syncing..." : "🔄 Sync Jobs"}
+            </button>
+
+            <Link
+              to="/add-job"
+              className="w-full sm:w-auto text-center bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-6 py-3 rounded-lg font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              + Add Job
+            </Link>
+          </div>
         </div>
 
         {/* Statistics */}
@@ -390,6 +437,10 @@ function Dashboard() {
 
                     <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm mt-2">
                       Active
+                    </span>
+
+                    <span className="inline-block ml-2 mt-2 bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm">
+                      {job.source || "Manual"}
                     </span>
 
                     {favorites.includes(job.id) && (

@@ -41,3 +41,15 @@ export const getJobById = (id) => {
     },
   });
 };
+
+export const syncJobs = () => {
+  return axios.post(
+    `${API}/sync`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+};
