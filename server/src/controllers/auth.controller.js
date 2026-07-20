@@ -2,6 +2,8 @@ const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
+const path = require("path");
+const fs = require("fs");
 
 const login = async (req, res) => {
   try {
@@ -142,16 +144,20 @@ const USER_SELECT_FIELDS = {
   email: true,
   mobile: true,
   bio: true,
+  avatarUrl: true,
   createdAt: true
 };
 
-const sanitizeUser = (user) => ({
+const sanitizeUser = (user, req) => ({
   id: user.id,
   name: user.fullName,
   email: user.email,
   role: "User",
   mobile: user.mobile,
   bio: user.bio,
+  avatarUrl: user.avatarUrl
+    ? `${req.protocol}://${req.get("host")}${user.avatarUrl}`
+    : null,
   joinedDate: user.createdAt
 });
 
@@ -171,7 +177,7 @@ const getMe = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      user: sanitizeUser(user)
+      user: sanitizeUser(user, req)
     });
 
   } catch (error) {
@@ -244,7 +250,7 @@ const updateProfile = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      user: sanitizeUser(updatedUser)
+      user: sanitizeUser(updatedUser, req)
     });
 
   } catch (error) {
@@ -257,9 +263,157 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const PASSWORD_MIN_LENGTH = 8;
+
+const getPasswordStrengthError = (password) => {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long.`;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter.";
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter.";
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number.";
+  }
+
+  return null;
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required."
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirm password do not match."
+      });
+    }
+
+    const strengthError = getPasswordStrengthError(newPassword);
+
+    if (strengthError) {
+      return res.status(400).json({
+        success: false,
+        message: strengthError
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found."
+      });
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid current password."
+      });
+    }
+
+    const isSameAsCurrentPassword = await bcrypt.compare(
+      newPassword,
+      user.password
+    );
+
+    if (isSameAsCurrentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password."
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully"
+    });
+
+  } catch (error) {
+    console.error("Change Password Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const uploadAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true }
+    });
+
+    const avatarPath = `/uploads/avatars/${req.file.filename}`;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: avatarPath },
+      select: USER_SELECT_FIELDS
+    });
+
+    if (existingUser?.avatarUrl) {
+      const oldFilePath = path.join(__dirname, "..", "..", existingUser.avatarUrl);
+
+      fs.unlink(oldFilePath, () => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo updated successfully",
+      user: sanitizeUser(updatedUser, req)
+    });
+
+  } catch (error) {
+    console.error("Upload Avatar Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
-  updateProfile
+  updateProfile,
+  changePassword,
+  uploadAvatar
 };

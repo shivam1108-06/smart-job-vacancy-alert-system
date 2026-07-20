@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Spinner from "../components/Spinner";
 import FormField from "../components/FormField";
+import AvatarUploader from "../components/AvatarUploader";
+import ChangePasswordForm from "../components/ChangePasswordForm";
 import { getProfile, updateProfile } from "../services/user.service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +42,7 @@ function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -181,144 +184,213 @@ function Profile() {
     <>
       <Navbar />
 
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 sm:p-6">
+      <div className="min-h-screen bg-slate-100 p-4 sm:p-6 md:p-8">
 
-        <div className="bg-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-2xl w-full max-w-md p-6 sm:p-8">
+        <div className="max-w-2xl mx-auto space-y-6">
 
-          <div className="flex flex-col items-center">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+              Account
+            </h1>
 
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-blue-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shrink-0">
-              {user.name?.charAt(0).toUpperCase()}
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="bg-green-600 hover:bg-green-700 active:scale-95 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+
+          {/* Profile Information */}
+          <div className="bg-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-2xl p-6 sm:p-8">
+
+            <h2 className="text-lg font-semibold text-slate-700 mb-6">
+              Profile Information
+            </h2>
+
+            <div className="flex flex-col items-center">
+
+              <AvatarUploader
+                name={user.name}
+                avatarUrl={user.avatarUrl}
+                onUploaded={(updatedUser) => setUser(updatedUser)}
+              />
+
+              {!isEditing && (
+                <>
+                  <h1 className="text-2xl sm:text-3xl font-bold mt-5 text-center break-words">
+                    {user.name}
+                  </h1>
+
+                  <p className="text-gray-500 mt-2 text-center break-all">
+                    {user.email}
+                  </p>
+
+                  <span className="mt-4 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
+                    {user.role}
+                  </span>
+
+                  {user.mobile && (
+                    <p className="text-gray-600 mt-3 text-center">
+                      {user.mobile}
+                    </p>
+                  )}
+
+                  {user.bio && (
+                    <p className="text-gray-600 mt-3 text-center whitespace-pre-wrap break-words">
+                      {user.bio}
+                    </p>
+                  )}
+
+                  {user.joinedDate && (
+                    <p className="text-gray-400 text-sm mt-3">
+                      Joined {new Date(user.joinedDate).toLocaleDateString()}
+                    </p>
+                  )}
+                </>
+              )}
+
             </div>
 
-            {!isEditing && (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold mt-5 text-center break-words">
-                  {user.name}
-                </h1>
+            {isEditing ? (
+              <form onSubmit={handleSave} className="mt-8 space-y-4">
 
-                <p className="text-gray-500 mt-2 text-center break-all">
-                  {user.email}
-                </p>
+                <FormField
+                  label="Full Name"
+                  name="fullName"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  error={errors.fullName}
+                  disabled={saving}
+                  placeholder="Your full name"
+                />
 
-                <span className="mt-4 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
-                  {user.role}
-                </span>
+                <FormField
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  error={errors.email}
+                  disabled={saving}
+                  placeholder="you@example.com"
+                />
 
-                {user.mobile && (
-                  <p className="text-gray-600 mt-3 text-center">
-                    {user.mobile}
-                  </p>
-                )}
+                <FormField
+                  label="Mobile Number"
+                  name="mobile"
+                  type="tel"
+                  value={form.mobile}
+                  onChange={handleChange}
+                  error={errors.mobile}
+                  disabled={saving}
+                  placeholder="Optional"
+                />
 
-                {user.bio && (
-                  <p className="text-gray-600 mt-3 text-center whitespace-pre-wrap break-words">
-                    {user.bio}
-                  </p>
-                )}
+                <FormField
+                  label="Bio"
+                  name="bio"
+                  as="textarea"
+                  rows={3}
+                  value={form.bio}
+                  onChange={handleChange}
+                  error={errors.bio}
+                  disabled={saving}
+                  maxLength={BIO_MAX_LENGTH}
+                  placeholder="Tell us a little about yourself"
+                  helperText={`${form.bio.length}/${BIO_MAX_LENGTH}`}
+                />
 
-                {user.joinedDate && (
-                  <p className="text-gray-400 text-sm mt-3">
-                    Joined {new Date(user.joinedDate).toLocaleDateString()}
-                  </p>
-                )}
-              </>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+                  >
+                    {saving && <Spinner />}
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={saving}
+                    className="flex-1 bg-gray-200 hover:bg-gray-300 active:scale-95 text-gray-800 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+              </form>
+            ) : (
+              <div className="mt-8">
+                <button
+                  onClick={handleEditClick}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200"
+                >
+                  Edit Profile
+                </button>
+              </div>
             )}
 
           </div>
 
-          {isEditing ? (
-            <form onSubmit={handleSave} className="mt-8 space-y-4">
+          {/* Account Settings */}
+          <div className="bg-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-2xl p-6 sm:p-8">
 
-              <FormField
-                label="Full Name"
-                name="fullName"
-                value={form.fullName}
-                onChange={handleChange}
-                error={errors.fullName}
-                placeholder="Your full name"
-              />
+            <h2 className="text-lg font-semibold text-slate-700 mb-6">
+              Account Settings
+            </h2>
 
-              <FormField
-                label="Email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                error={errors.email}
-                placeholder="you@example.com"
-              />
+            {/* Security / Change Password */}
+            <div>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="font-medium text-slate-800">Security</h3>
+                  <p className="text-sm text-gray-500">
+                    Change your account password
+                  </p>
+                </div>
 
-              <FormField
-                label="Mobile Number"
-                name="mobile"
-                type="tel"
-                value={form.mobile}
-                onChange={handleChange}
-                error={errors.mobile}
-                placeholder="Optional"
-              />
-
-              <FormField
-                label="Bio"
-                name="bio"
-                as="textarea"
-                rows={3}
-                value={form.bio}
-                onChange={handleChange}
-                error={errors.bio}
-                maxLength={BIO_MAX_LENGTH}
-                placeholder="Tell us a little about yourself"
-                helperText={`${form.bio.length}/${BIO_MAX_LENGTH}`}
-              />
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
-                >
-                  {saving && <Spinner />}
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={saving}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 active:scale-95 text-gray-800 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
+                {!isChangingPassword && (
+                  <button
+                    onClick={() => setIsChangingPassword(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                  >
+                    Change Password
+                  </button>
+                )}
               </div>
 
-            </form>
-          ) : (
-            <div className="mt-8 space-y-4">
-
-              <button
-                onClick={handleEditClick}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200"
-              >
-                Edit Profile
-              </button>
-
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="w-full bg-green-600 hover:bg-green-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200"
-              >
-                Back to Dashboard
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white py-3 rounded-lg font-medium transition-all duration-200"
-              >
-                Logout
-              </button>
-
+              {isChangingPassword && (
+                <div className="mt-5">
+                  <ChangePasswordForm
+                    onCancel={() => setIsChangingPassword(false)}
+                  />
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Logout */}
+            <div className="border-t border-gray-100 mt-6 pt-6">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="font-medium text-slate-800">Logout</h3>
+                  <p className="text-sm text-gray-500">
+                    Sign out of your account
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 active:scale-95 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+
+          </div>
 
         </div>
 
