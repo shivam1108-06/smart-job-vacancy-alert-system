@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Spinner from "../components/Spinner";
-import { getJobs, deleteJob, syncJobs } from "../services/job.service";
+import {
+  getJobs,
+  deleteJob,
+  syncJobs,
+  getSyncHistory,
+} from "../services/job.service";
 import JobBarChart from "../components/JobBarChart";
 import JobPieChart from "../components/JobPieChart";
 import {
@@ -20,6 +25,7 @@ function Dashboard() {
 
   const [syncing, setSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [syncHistory, setSyncHistory] = useState([]);
 
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("latest");
@@ -37,6 +43,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchJobs();
+    fetchSyncHistory();
   }, []);
 
   const fetchJobs = async () => {
@@ -56,6 +63,16 @@ function Dashboard() {
     }
   };
 
+  const fetchSyncHistory = async () => {
+    try {
+      const response = await getSyncHistory();
+
+      setSyncHistory(response.data.logs);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleSync = async () => {
     try {
       setSyncing(true);
@@ -68,7 +85,7 @@ function Dashboard() {
         toast.success("No New Jobs Found");
       }
 
-      await fetchJobs();
+      await Promise.all([fetchJobs(), fetchSyncHistory()]);
     } catch (error) {
       console.log(error);
 
@@ -243,6 +260,51 @@ function Dashboard() {
             </Link>
           </div>
         </div>
+
+        {/* Recent Sync Status */}
+        {syncHistory.length > 0 && (
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-200">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">
+              Recent Sync Status
+            </h2>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              <div>
+                <p className="text-sm text-gray-500">Last Sync Time</p>
+                <p className="font-semibold text-slate-800 mt-1">
+                  {new Date(syncHistory[0].startedAt).toLocaleString()}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Jobs Added</p>
+                <p className="font-semibold text-slate-800 mt-1">
+                  {syncHistory[0].jobsAdded}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Duplicates Skipped</p>
+                <p className="font-semibold text-slate-800 mt-1">
+                  {syncHistory[0].duplicatesSkipped}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                <span
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
+                    syncHistory[0].status === "SUCCESS"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {syncHistory[0].status === "SUCCESS" ? "Success" : "Failed"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 mb-8">

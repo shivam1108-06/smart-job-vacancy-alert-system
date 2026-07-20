@@ -53,3 +53,11 @@ export const syncJobs = () => {
     }
   );
 };
+
+export const getSyncHistory = () => {
+  return axios.get(`${API}/sync-history`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+};

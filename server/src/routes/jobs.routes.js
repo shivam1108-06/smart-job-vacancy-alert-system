@@ -10,6 +10,7 @@ const {
   updateJob,
   deleteJob,
   syncJobs,
+  getSyncHistory,
 } = require("../controllers/jobs.controller");
 
 router.post("/", authMiddleware, createJob);
@@ -17,6 +18,8 @@ router.post("/", authMiddleware, createJob);
 router.post("/sync", authMiddleware, syncJobs);
 
 router.get("/", authMiddleware, getAllJobs);
+
+router.get("/sync-history", authMiddleware, getSyncHistory);
 
 router.get("/:id", authMiddleware, getJobById);
 

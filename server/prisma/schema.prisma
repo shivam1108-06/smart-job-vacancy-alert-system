@@ -12,6 +12,11 @@ enum Role {
   ADMIN
 }
 
+enum SyncStatus {
+  SUCCESS
+  FAILED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   fullName  String
@@ -24,7 +29,8 @@ model User {
   createdAt DateTime @default(now())
   lastSyncedAt DateTime?
 
-  jobs Job[]
+  jobs     Job[]
+  syncLogs SyncLog[]
 }
 
 model Job {
@@ -37,6 +43,19 @@ model Job {
   applyLink   String
   source      String   @default("Manual")
   createdAt   DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SyncLog {
+  id                Int        @id @default(autoincrement())
+  startedAt         DateTime   @default(now())
+  finishedAt        DateTime?
+  jobsAdded         Int        @default(0)
+  duplicatesSkipped Int        @default(0)
+  status            SyncStatus @default(SUCCESS)
+  errorMessage      String?
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

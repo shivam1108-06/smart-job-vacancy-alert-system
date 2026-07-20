@@ -1,10 +1,5 @@
 const prisma = require("../config/prisma");
-const { fetchExternalJobs } = require("../services/jobApi.service");
-
-// title + company + location, normalized, is the duplicate-detection key
-// used by both the existing-jobs lookup and the freshly fetched API jobs.
-const buildJobKey = (title, company, location) =>
-  `${title}|${company}|${location}`.trim().toLowerCase();
+const { syncJobsForUser } = require("../services/jobSync.service");
 
 const createJob = async (req, res) => {
   try {
@@ -214,67 +209,41 @@ const deleteJob = async (req, res) => {
 };
 
 const syncJobs = async (req, res) => {
-  try {
-    const userId = req.user.userId;
+  const result = await syncJobsForUser(req.user.userId);
 
-    const fetchedJobs = await fetchExternalJobs();
-
-    const existingJobs = await prisma.job.findMany({
-      where: { userId },
-      select: { title: true, company: true, location: true }
+  if (!result.success) {
+    return res.status(502).json({
+      success: false,
+      message: result.message
     });
+  }
 
-    const existingKeys = new Set(
-      existingJobs.map((job) =>
-        buildJobKey(job.title, job.company, job.location)
-      )
-    );
+  return res.status(200).json({
+    success: true,
+    added: result.added,
+    duplicates: result.duplicates
+  });
+};
 
-    let added = 0;
-    let duplicates = 0;
-
-    for (const job of fetchedJobs) {
-      const key = buildJobKey(job.title, job.company, job.location);
-
-      if (existingKeys.has(key)) {
-        duplicates += 1;
-        continue;
-      }
-
-      await prisma.job.create({
-        data: {
-          title: job.title,
-          company: job.company,
-          location: job.location,
-          salary: job.salary,
-          description: job.description,
-          applyLink: job.applyLink,
-          source: job.source,
-          userId
-        }
-      });
-
-      existingKeys.add(key);
-      added += 1;
-    }
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { lastSyncedAt: new Date() }
+const getSyncHistory = async (req, res) => {
+  try {
+    const logs = await prisma.syncLog.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { startedAt: "desc" },
+      take: 10
     });
 
     return res.status(200).json({
       success: true,
-      added,
-      duplicates
+      logs
     });
 
   } catch (error) {
-    console.error("Sync Jobs Error:", error);
+    console.error("Get Sync History Error:", error);
 
-    return res.status(502).json({
+    return res.status(500).json({
       success: false,
-      message: error.message || "Failed to sync jobs from the job API."
+      message: error.message
     });
   }
 };
@@ -285,5 +254,6 @@ module.exports = {
   getJobById,
   updateJob,
   deleteJob,
-  syncJobs
+  syncJobs,
+  getSyncHistory
 };
